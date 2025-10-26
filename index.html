@@ -1,109 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>sparkpacket chat client</title>
-  <link rel="icon" type="image/png" href="favicon.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body {
-      margin:0;
-      font-family:monospace;
-      background:#000;
-      color:#0f0;
-      display:flex;
-      flex-direction:column;
-      height:100vh;
-      overflow:hidden;
-    }
-    #users {
-      flex: 0 0 auto;
-      padding:10px;
-      border-bottom:1px solid #0f0;
-      font-size:12px;
-      background:#000;
-    }
-    #userlist {
-      display:block;
-      grid-auto-flow: column;
-      grid-template-rows: repeat(auto-fill, minmax(14px, auto));
-      gap:2px 20px;
-      list-style:none;
-      padding:0;
-      margin:0;
-    }
-    #chat {
-      flex:1 1 auto;
-      overflow-y:auto;
-      padding:10px;
-      border-bottom:1px solid #0f0;
-    }
-    #input-container {
-      flex:0 0 auto;
-      position:relative;
-      background:#000;
-      border-top:1px solid #0f0;
-      padding:5px;
-    }
-    #privacy-note {
-      position:absolute;
-      top:-18px;
-      right:10px;
-      font-size:12px;
-      color:#888;
-      background-color: rgba(0,0,0,0);
-      padding:2px 6px;
-      pointer-events:none;
-      transition: all 0.3s ease;
-    }
-    #privacy-note.shrink {
-      opacity:0.5;
-      transform: scale(0.85);
-    }
-    #input {
-      width:100%;
-      padding:10px;
-      background:#000;
-      color:#0f0;
-      border:none;
-      font-family:monospace;
-      font-size:14px;
-    }
-    .system { color:gray; font-style:italic; }
-    .message { margin-bottom:5px; }
-    .username { font-weight:bold; }
-    .self { color:red !important; }
-    #discord-note {
-      position:fixed;
-      top:10px;
-      right:10px;
-      background-color:#2b2b2b;
-      color:white;
-      padding:6px 10px;
-      border-radius:4px;
-      font-size:13px;
-      z-index:9999;
-      box-shadow:0 0 5px rgba(0,0,0,0.5);
-    }
-    #discord-note a { color:#7289da; text-decoration:none; }
-    #discord-note a:hover { text-decoration:underline; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merged Chat Client</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+  body {
+    margin:0; font-family:monospace; background:#000; color:#0f0;
+    display:flex; flex-direction:column; height:100vh; overflow:hidden;
+  }
+  #users { flex:0 0 auto; padding:10px; border-bottom:1px solid #0f0; font-size:12px; background:#000; }
+  #userlist { display:block; list-style:none; padding:0; margin:0; }
+  #chat { flex:1 1 auto; overflow-y:auto; padding:10px; border-bottom:1px solid #0f0; }
+  #input-container { flex:0 0 auto; position:relative; background:#000; border-top:1px solid #0f0; padding:5px; }
+  #privacy-note { position:absolute; top:-18px; right:10px; font-size:12px; color:#888; pointer-events:none; transition:all 0.3s ease; }
+  #privacy-note.shrink { opacity:0.5; transform:scale(0.85); }
+  #input { width:100%; padding:10px; background:#000; color:#0f0; border:none; font-family:monospace; font-size:14px; }
+  .system { color:gray; font-style:italic; }
+  .message { margin-bottom:5px; }
+  .username { font-weight:bold; }
+  .self { color:red !important; }
+  #discord-note { position:fixed; top:10px; right:10px; background-color:#2b2b2b; color:white; padding:6px 10px; border-radius:4px; font-size:13px; z-index:9999; box-shadow:0 0 5px rgba(0,0,0,0.5);}
+  #discord-note a { color:#7289da; text-decoration:none; }
+  #discord-note a:hover { text-decoration:underline; }
+</style>
 </head>
 <body>
-  <div id="users"><ul id="userlist"></ul></div>
-  <div id="chat"></div>
-  <div id="input-container">
-    <div id="privacy-note">This site uses localStorage (cookies) to store information.</div>
-    <input id="input" type="text" placeholder="Type a message..." autofocus autocomplete="off">
-  </div>
-  <div id="discord-note"><a href="https://discord.gg/kdwCbTjSvH" target="_blank">Join our Discord</a></div>
+
+<div id="users"><ul id="userlist"></ul></div>
+<div id="chat"></div>
+
+<div id="input-container">
+  <div id="privacy-note">This site uses localStorage (cookies) to store information.</div>
+  <input id="input" type="text" placeholder="Type a message..." autofocus autocomplete="off">
+</div>
+
+<div id="discord-note"><a href="https://discord.gg/kdwCbTjSvH" target="_blank">Join our Discord</a></div>
 
 <script src="https://cdn.scaledrone.com/scaledrone.min.js"></script>
 <script>
 const ROOM_ID = 'hWmT5ZuGe51IgiMD';
 let currentRoom = 'observable-room';
 
-// NO default name, use empty string if user hasn't set it
+// Local user settings
 let username = localStorage.getItem('username') || '';
 let color = localStorage.getItem('color') || '#0f0';
 let font = localStorage.getItem('font') || 'monospace';
@@ -114,8 +54,8 @@ function setUserSetting(type, value) {
   if(type==='font'){ localStorage.setItem('font', value); font=value; }
 }
 
-// Connect to Scaledrone
-const drone = new ScaleDrone(ROOM_ID, {data:{username, color, font}});
+// Initialize Scaledrone
+const drone = new Scaledrone(ROOM_ID, { data:{ name: username, color, font } });
 let clientId = null;
 let members = [];
 
@@ -123,113 +63,25 @@ drone.on('open', err => { if(err) return console.error(err); clientId = drone.cl
 
 let room = drone.subscribe(currentRoom);
 
-function subscribeToRoom(roomName) {
+function subscribeToRoom(roomName){
   if(room) room.unsubscribe();
   currentRoom = roomName;
   room = drone.subscribe(currentRoom);
+
   room.on('open', err => { if(err) console.error(err); });
-  room.on('members', m => { members=m; updateUserList(); addSystemMessage(`Switched to room: ${displayRoomName(currentRoom)}`); });
+  room.on('members', m => { members = m; updateUserList(); addSystemMessage(`Switched to room: ${displayRoomName(currentRoom)}`); });
   room.on('member_join', member => { members.push(member); updateUserList(); addSystemMessage(`${getName(member)} joined at ${getTime()}`); });
-  room.on('member_leave', ({id}) => { const i = members.findIndex(m=>m.id===id); if(i!==-1){ addSystemMessage(`${getName(members[i])} left at ${getTime()}`); members.splice(i,1);} updateUserList(); });
-  room.on('data', (data, member) => { if(!member) return; if(data.type==='html') addMessageHtml(getName(member), data.content, member.clientData); else if(data.type==='text') addMessage(getName(member), data.content, member.clientData); });
+  room.on('member_leave', ({id}) => { const i = members.findIndex(m=>m.id===id); if(i!==-1){ addSystemMessage(`${getName(members[i])} left at ${getTime()}`); members.splice(i,1); updateUserList(); } });
+  room.on('data', (data, member) => { handleIncomingMessage(data, member); });
 }
 
-room.on('members', m => { members=m; updateUserList(); addSystemMessage(username?`${username} joined`:'You joined'); });
+// Listen to room events
+room.on('open', err => { if(err) console.error(err); });
+room.on('members', m => { members = m; updateUserList(); addSystemMessage(`${username||'You'} joined`); });
 room.on('member_join', member => { members.push(member); updateUserList(); addSystemMessage(`${getName(member)} joined at ${getTime()}`); });
-room.on('member_leave', ({id}) => { const i = members.findIndex(m=>m.id===id); if(i!==-1){ addSystemMessage(`${getName(members[i])} left at ${getTime()}`); members.splice(i,1);} updateUserList(); });
-room.on('data', (data, member) => { if(!member) return; if(data.type==='html') addMessageHtml(getName(member), data.content, member.clientData); else if(data.type==='text') addMessage(getName(member), data.content, member.clientData); });
+room.on('member_leave', ({id}) => { const i=members.findIndex(m=>m.id===id); if(i!==-1){ addSystemMessage(`${getName(members[i])} left at ${getTime()}`); members.splice(i,1); updateUserList(); } });
+room.on('data', (data, member) => { handleIncomingMessage(data, member); });
 
-function getName(member){ return member.clientData?.username || generateNameForMember(member); }
-function generateNameForMember(member){
-  if(member.clientData?.username) return member.clientData.username;
-  // fallback to random generated name for non-registered users
-  const adjs=["autumn","hidden","bitter","misty","silent","empty","dry","dark","summer","icy","delicate","quiet","white","cool","spring","winter","patient","twilight","dawn","crimson","wispy","weathered","blue","billowing","broken","cold","damp","falling","frosty","green","long","late","lingering","bold","little","morning","muddy","old","red","rough","still","small","sparkling","throbbing","shy","wandering","withered","wild","black","young","holy","solitary","fragrant","aged","snowy","proud","floral","restless","divine","polished","ancient","purple","lively","nameless"];
-  const nouns=["waterfall","river","breeze","moon","rain","wind","sea","morning","snow","lake","sunset","pine","shadow","leaf","dawn","glitter","forest","hill","cloud","meadow","sun","glade","bird","brook","butterfly","bush","dew","dust","field","fire","flower","firefly","feather","grass","haze","mountain","night","pond","darkness","snowflake","silence","sound","sky","shape","surf","thunder","violet","water","wildflower","wave","resonance","sun","wood","dream","cherry","tree","fog","frost","voice","paper","frog","smoke","star"];
-  return adjs[Math.floor(Math.random()*adjs.length)]+'_'+nouns[Math.floor(Math.random()*nouns.length)];
-}
-
-function getTime(){ return new Date().toLocaleTimeString(); }
-
-function addMessage(name,message,data={}) {
-  const msg=document.createElement('div'); msg.className='message';
-  msg.innerHTML=`<span class="username" style="color:${data.color||'#0f0'}; font-family:${data.font||'monospace'}">${escapeHtml(name)}:</span> <span style="font-family:${data.font||'monospace'}">${escapeHtml(message)}</span>`;
-  chat.appendChild(msg);
-  chat.scrollTop=chat.scrollHeight;
-}
-function addMessageHtml(name,html,data={}) {
-  const msg=document.createElement('div'); msg.className='message';
-  msg.innerHTML=`<span class="username" style="color:${data.color||'#0f0'}; font-family:${data.font||'monospace'}">${escapeHtml(name)}:</span> <span style="font-family:${data.font||'monospace'}">${html}</span>`;
-  chat.appendChild(msg);
-  chat.scrollTop=chat.scrollHeight;
-}
-
-function addSystemMessage(text){ const sys=document.createElement('div'); sys.className='system'; sys.textContent=`[SYSTEM] ${text}`; chat.appendChild(sys); chat.scrollTop=chat.scrollHeight; }
-
-function displayRoomName(room){ return room.replace(/^observable-/,'').replace(/_/g,' '); }
-
-function updateUserList(){
-  const userlistEl=document.getElementById('userlist');
-  userlistEl.innerHTML='';
-  const perCol=5;
-  const names=members.map(m=>{
-    const isSelf=m.id===clientId;
-    const style=isSelf?'color:red; font-weight:bold;':`color:${m.clientData?.color||'#0f0'}`;
-    const fname=m.clientData?.font||font;
-    const uname=getName(m);
-    return {uname,style,fname};
-  });
-  let row=0,maxLen=0,currentColumn=document.createElement('ul');
-  currentColumn.style.display='inline-block'; currentColumn.style.verticalAlign='top'; currentColumn.style.marginRight='1ch'; currentColumn.style.listStyle='disc'; currentColumn.style.paddingLeft='20px';
-  names.forEach((u,i)=>{
-    const li=document.createElement('li');
-    li.style.cssText=`font-family:${u.fname}; ${u.style}`;
-    li.textContent=u.uname;
-    currentColumn.appendChild(li);
-    if(u.uname.length>maxLen) maxLen=u.uname.length;
-    row++;
-    if(row>=perCol || i===names.length-1){
-      currentColumn.style.minWidth=maxLen+1+'ch';
-      userlistEl.appendChild(currentColumn);
-      row=0; maxLen=0;
-      if(i!==names.length-1){
-        currentColumn=document.createElement('ul');
-        currentColumn.style.display='inline-block'; currentColumn.style.verticalAlign='top'; currentColumn.style.marginRight='1ch'; currentColumn.style.listStyle='disc'; currentColumn.style.paddingLeft='20px';
-      }
-    }
-  });
-}
-
-input.addEventListener('keydown', e=>{
-  if(e.key!=='Enter') return;
-  const val=input.value.trim(); if(!val) return;
-  if(val.startsWith('/')){
-    const [cmd,...args]=val.slice(1).split(' '); const arg=args.join(' ').trim();
-    switch(cmd){
-      case 'name': if(!arg) return addSystemMessage('Usage: /name yourName'); setUserSetting('name',arg); location.reload(); break;
-      case 'color': if(!arg) return addSystemMessage('Usage: /color #hex'); setUserSetting('color',arg); location.reload(); break;
-      case 'font': if(!arg) return addSystemMessage('Usage: /font fontName'); setUserSetting('font',arg); location.reload(); break;
-      case 'html': if(!arg) return addSystemMessage('Usage: /html <raw HTML>'); drone.publish({room:currentRoom,message:{type:'html',content:arg}}); break;
-      case 'clear': chat.innerHTML=''; break;
-      case 'help': addSystemMessage('Commands: /name, /color, /font, /html, /clear, /help, /room, /default, /hub'); break;
-      case 'hub': if(arg) return addSystemMessage('Usage: /hub. Nothing else.'); window.location.href='https://sparkpacket.github.io'; break;
-      case 'room': if(!arg) return addSystemMessage('Usage: /room room name. To return just do /default.'); subscribeToRoom('observable-'+arg.replace(/\s+/g,'_')); break;
-      case 'default': if(arg) return addSystemMessage('Usage: /default. Nothing else.'); subscribeToRoom('observable-default'); break;
-      default: addSystemMessage(`Unknown command: ${cmd}`);
-    }
-  }else{ drone.publish({room:currentRoom,message:{type:'text',content:val}}); }
-  input.value=''; privacyNote.classList.remove("shrink");
-});
-
-function escapeHtml(s){ return s.replace(/[&<"']/g,m=>({'&':'&amp;','<':'&lt;','"':'&quot;',"'":'&#039;'}[m])); }
-
-const inputEl=document.getElementById("input");
-const privacyNote=document.getElementById("privacy-note");
-let typingTimer;
-inputEl.addEventListener("input",()=>{
-  if(inputEl.value.trim().length>0){ privacyNote.classList.add("shrink"); clearTimeout(typingTimer);}
-  else{ privacyNote.classList.remove("shrink"); }
-});
-inputEl.addEventListener("blur",()=>{ privacyNote.classList.remove("shrink"); });
-</script>
-</body>
-</html>
+function handleIncomingMessage(data, member){
+  if(!member) return;
+  if(typeof data==='string') addMessage(getName(member), data, member.
