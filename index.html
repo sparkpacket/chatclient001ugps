@@ -121,11 +121,14 @@
 <script>
   const ROOM_ID = 'hWmT5ZuGe51IgiMD';
   let currentRoom = 'observable-room';
-  const DEFAULT_NAME = 'unregistered';
-
-  let username = localStorage.getItem('username') || DEFAULT_NAME;
-  let color = localStorage.getItem('color') || '#0f0';
-  let font = localStorage.getItem('font') || 'monospace';
+  // Remove global default for others
+const DEFAULT_NAME = ''; // only used locally if you haven't set your name
+// In the user list
+const uname = m.clientData?.username || '';
+  
+let username = localStorage.getItem('username') || DEFAULT_NAME;
+let color = localStorage.getItem('color') || '#0f0';
+let font = localStorage.getItem('font') || 'monospace';
 
   function setUserSetting(type, value) {
     if (type === 'name') {
@@ -209,9 +212,13 @@
     else if (data.type === 'text') addMessage(getName(member), data.content, member.clientData);
   });
 
-  function getName(member) {
-    return member.clientData?.username || DEFAULT_NAME;
-  }
+ function getName(member) {
+  // if this is YOU, use local username
+  if (member.id === clientId) return username;
+  // for others, just use their actual name (or empty string if they haven't set one)
+  return member.clientData?.username || '';
+}
+  
   function getTime() {
     return new Date().toLocaleTimeString();
   }
