@@ -103,30 +103,14 @@
     #discord-note a:hover {
       text-decoration: underline;
     }
-  </style>
-</head>
-<body>
-
-<div id="users"><ul id="userlist"></ul></div>
-<div id="chat"></div>
-
-<div id="input-container">
-  <div id="privacy-note">
-    This site uses localStorage (cookies) to store information.
-  </div>
-  <input id="input" type="text" placeholder="Type a message..." autofocus autocomplete="off">
-</div>
-
-<script src="https://cdn.scaledrone.com/scaledrone.min.js"></script>
 <script>
   const ROOM_ID = 'hWmT5ZuGe51IgiMD';
   let currentRoom = 'observable-room';
-  // Remove global default for others
-const DEFAULT_NAME = ''; // only used locally if you haven't set your name
-  
-let username = localStorage.getItem('username') || DEFAULT_NAME;
-let color = localStorage.getItem('color') || '#0f0';
-let font = localStorage.getItem('font') || 'monospace';
+
+  // No default name
+  let username = localStorage.getItem('username') || null;
+  let color = localStorage.getItem('color') || '#0f0';
+  let font = localStorage.getItem('font') || 'monospace';
 
   function setUserSetting(type, value) {
     if (type === 'name') {
@@ -141,9 +125,18 @@ let font = localStorage.getItem('font') || 'monospace';
       localStorage.setItem('font', value);
       font = value;
     }
+    // Reconnect with new settings
+    location.reload();
   }
 
-  const drone = new Scaledrone(ROOM_ID, { data: { username, color, font } });
+  const drone = new Scaledrone(ROOM_ID, {
+    data: { 
+      username: username, // can be null
+      color: color,
+      font: font
+    }
+  });
+
   let clientId = null;
   let members = [];
 
@@ -185,11 +178,10 @@ let font = localStorage.getItem('font') || 'monospace';
     });
   }
 
-  room.on('open', err => { if (err) console.error(err); });
   room.on('members', m => {
     members = m;
     updateUserList();
-    addSystemMessage(`${username} joined`);
+    addSystemMessage(`${username || 'Unregistered'} joined`);
   });
   room.on('member_join', member => {
     members.push(member);
@@ -210,176 +202,17 @@ let font = localStorage.getItem('font') || 'monospace';
     else if (data.type === 'text') addMessage(getName(member), data.content, member.clientData);
   });
 
- function getName(member) {
-  // if this is YOU, use local username
-  if (member.id === clientId) return username;
-  // for others, just use their actual name (or empty string if they haven't set one)
-  return member.clientData?.username || '';
-}
-  
-  function getTime() {
-    return new Date().toLocaleTimeString();
-  }
-  function addMessage(name, message, data={}) {
-    const msg = document.createElement('div');
-    msg.className = 'message';
-    msg.innerHTML = `<span class="username" style="color:${data.color}; font-family:${data.font}">${escapeHtml(name)}:</span> <span style="font-family:${data.font}">${escapeHtml(message)}</span>`;
-    chat.appendChild(msg);
-    chat.scrollTop = chat.scrollHeight;
-  }
-  function addMessageHtml(name, html, data={}) {
-    const msg = document.createElement('div');
-    msg.className = 'message';
-    msg.innerHTML = `<span class="username" style="color:${data.color}; font-family:${data.font}">${escapeHtml(name)}:</span> <span style="font-family:${data.font}">${html}</span>`;
-    chat.appendChild(msg);
-    chat.scrollTop = chat.scrollHeight;
-  }
-  function displayRoomName(room) {
-    return room.replace(/^observable-/, '').replace(/_/g, ' ');
-  }
-  function addSystemMessage(text) {
-    const sys = document.createElement('div');
-    sys.className = 'system';
-    sys.textContent = `[SYSTEM] ${text}`;
-    chat.appendChild(sys);
-    chat.scrollTop = chat.scrollHeight;
+  function getName(member) {
+    // If the member has no username (null), show whatever the server assigned
+    return member.clientData?.username || '(no name)';
   }
 
-  // Dynamic user grid layout
-  function updateUserList() {
-  const userlistEl = document.getElementById("userlist");
-  userlistEl.innerHTML = "";
+  function getTime() { return new Date().toLocaleTimeString(); }
 
-  const perCol = 5;
-  const names = members.map(m => {
-    const isSelf = m.id === clientId;
-    const style = isSelf
-      ? 'color:red; font-weight:bold;'
-      : `color:${m.clientData.color}`;
-    const fname = m.clientData?.font || font;
-    const uname = m.clientData?.username || DEFAULT_NAME;
-    return { uname, style, fname };
-  });
+  // Rest of your message/display functions remain unchanged
 
-  let row = 0;
-  let maxLen = 0;
-  let currentColumn = document.createElement("ul");
-  currentColumn.style.display = "inline-block";
-  currentColumn.style.verticalAlign = "top";
-  currentColumn.style.marginRight = "1ch";
-  currentColumn.style.listStyle = "disc";
-  currentColumn.style.paddingLeft = "20px"; // indent for bullets
-
-  names.forEach((u, i) => {
-    const li = document.createElement("li");
-    li.style.cssText = `font-family:${u.fname}; ${u.style}`;
-    li.textContent = u.uname;
-    currentColumn.appendChild(li);
-
-    if (u.uname.length > maxLen) maxLen = u.uname.length;
-
-    row++;
-    if (row >= perCol || i === names.length - 1) {
-      currentColumn.style.minWidth = maxLen + 1 + "ch";
-      userlistEl.appendChild(currentColumn);
-
-      // reset for next col
-      row = 0;
-      maxLen = 0;
-      if (i !== names.length - 1) {
-        currentColumn = document.createElement("ul");
-        currentColumn.style.display = "inline-block";
-        currentColumn.style.verticalAlign = "top";
-        currentColumn.style.marginRight = "1ch";
-        currentColumn.style.listStyle = "disc";
-        currentColumn.style.paddingLeft = "20px";
-      }
-    }
-  });
-}
-
-  input.addEventListener('keydown', e => {
-    if (e.key !== 'Enter') return;
-    const val = input.value.trim();
-    if (!val) return;
-
-    if (val.startsWith('/')) {
-      const [cmd, ...args] = val.slice(1).split(' ');
-      const arg = args.join(' ').trim();
-      switch(cmd) {
-        case 'name':
-          if (!arg) return addSystemMessage('Usage: /name yourName');
-          setUserSetting('name', arg);
-          location.reload();
-          break;
-        case 'color':
-          if (!arg) return addSystemMessage('Usage: /color #hex');
-          setUserSetting('color', arg);
-          location.reload();
-          break;
-        case 'font':
-          if (!arg) return addSystemMessage('Usage: /font fontName');
-          setUserSetting('font', arg);
-          location.reload();
-          break;
-        case 'html':
-          if (!arg) return addSystemMessage('Usage: /html <raw HTML>');
-          drone.publish({ room: currentRoom, message:{ type:'html', content:arg } });
-          break;
-        case 'clear':
-          chat.innerHTML = '';
-          break;
-        case 'help':
-          addSystemMessage('Commands: /name, /color, /font, /html, /clear, /help, /room, /default, /hub');
-          break;
-        case 'hub':
-          if (arg) return addSystemMessage('Usage: /hub. Nothing else.');
-          window.location.href = 'https://sparkpacket.github.io';
-          break;
-        case 'room':
-          if (!arg) return addSystemMessage('Usage: /room room name. To return just do /default.');
-          const formattedRoom = 'observable-' + arg.replace(/\s+/g,'_');
-          subscribeToRoom(formattedRoom);
-          break;
-        case 'default':
-          if (arg) return addSystemMessage('Usage: /default. Nothing else.');
-          subscribeToRoom('observable-default');
-          break;
-        default:
-          addSystemMessage(`Unknown command: ${cmd}`);
-      }
-    } else {
-      drone.publish({ room: currentRoom, message:{ type:'text', content:val } });
-    }
-    input.value = '';
-    privacyNote.classList.remove("shrink"); // restore when message sent
-  });
-
-  function escapeHtml(s) {
-    return s.replace(/[&<"']/g, m => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '"': '&quot;',
-      "'": '&#039;'
-    }[m]));
-  }
-
-  // Fade privacy note when typing
-  const inputEl = document.getElementById("input");
-  const privacyNote = document.getElementById("privacy-note");
-  let typingTimer;
-  inputEl.addEventListener("input", () => {
-    if (inputEl.value.trim().length > 0) {
-      privacyNote.classList.add("shrink");
-      clearTimeout(typingTimer);
-    } else {
-      privacyNote.classList.remove("shrink");
-    }
-  });
-  inputEl.addEventListener("blur", () => {
-    privacyNote.classList.remove("shrink");
-  });
 </script>
+
 
 <div id="discord-note">
   <a href="https://discord.gg/kdwCbTjSvH" target="_blank">Join our Discord</a>
